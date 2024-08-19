@@ -2,161 +2,9 @@ from datetime import date
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from copy import copy
+from customer import Customer
+from loans import *
 
-"""
-For simplicity, this model assumes the loan payment schedule is the same as the income schedule - a monthly period.
-A customer with their loan
-On the first of each month, the customer receives a paycheck and then makes a loan payment and pays the expenses.
-If the customer gets paid every two weeks, then the calculated equivalent monthly payment = paycheck * 26 / 12.
-"""
-
-"""
-Loan Class
-==========
-
-This module contains the Loan class to model a loan with methods to calculate payments.
-
-Classes
--------
-Loan
-    A class to represent a loan with methods to calculate payments.
-"""
-
-class Loan:
-    """
-    A class to represent a loan.
-
-    Attributes
-    ----------
-    bal : float
-        The balance of the loan.
-    rate : float
-        The interest rate of the loan.
-    term : int
-        The term of the loan in months.
-    pmt : float
-        The monthly payment of the loan.
-    mp_type : int
-        The method type for calculating minimum payment.
-    xl : float
-        The lower threshold for balance.
-    xh : float
-        The upper threshold for balance.
-    r : float
-        The percentage rate that when multiplied by the remaining balance will get the minimum balance.
-    fees : float
-        Any optional additional fees.
-
-
-    Methods
-    -------
-    calc_pmt():
-        Calculates the monthly payment of the loan using a fixed rate and term.
-    calc_min_pmt():
-        Calculates the minimum payment of the loan.
-    """
-
-    def __init__(self, bal, rate, term, mp_type=2, xl=25, xh=1000, r=0.02, fees=0):
-        """
-        Constructs all the necessary attributes for the loan object.
-
-        Parameters
-        ----------
-        bal : float
-            The balance of the loan.
-        rate : float
-            The interest rate of the loan.
-        term : int
-            The term of the loan in months.
-        mp_type : int, optional
-            The method type for calculating minimum payment (default is 2).
-        xl : float, optional
-            The lower threshold for balance (default is 25).
-        xh : float, optional
-            The upper threshold for balance (default is 1000).
-        r : float, optional
-            The interest rate for minimum payment calculation (default is 0.02).
-        fees : float, optional
-            The fees for minimum payment calculation (default is 0).
-        """
-        self.bal = bal
-        self.rate = rate
-        self.term = term
-        self.pmt = self.calc_pmt()
-        self.mp_type = mp_type
-        self.xl = xl
-        self.xh = xh
-        self.r = r
-        self.fees = fees
-
-    def calc_pmt(self):
-        """
-        Calculates the monthly payment of the loan.
-
-        Returns
-        -------
-        float
-            The monthly payment of the loan.
-        """
-        r = self.rate
-        n = self.term
-        pmt = (self.bal * r) / (1 - (1 + r) ** -n)
-        return pmt
-
-    def calc_min_pmt(self):
-        """
-        Calculates the minimum payment of the loan.
-
-        Returns
-        -------
-        float
-            The minimum payment of the loan.
-
-        Raises
-        ------
-        Exception
-            If the minimum payment type is invalid.
-        """
-
-        def f():
-            if self.mp_type == 1:
-                return self.r * self.bal
-
-            if self.mp_type == 2:
-                if self.bal > self.xh: return self.r * self.bal + self.fees
-                if self.bal > self.xl: return self.xl + self.fees
-                return self.bal + self.fees
-
-            raise Exception("Invalid option")
-        
-        # Creditors typically round up to the nearest dollar making it easier for both the creditor and the debtor to handle.
-        return round(f() + 0.4999)
-        
-
-
-class Customer:
-    """
-    A customer with income, expenses, and a balance.
-    """
-    
-    def __init__(self, annual_income = 40000, end_bal = 0):
-        """
-        Attributes
-        ----------
-        annual_income : float
-            The amount of money the customer makes per year, e.g. $40,000.
-        paycheck : float
-            The amount of money the customer makes per paycheck, e.g. $1300 after taxes every two weeks for $40,000/year.
-        end_bal : float, optional
-            The approximate amount of money the customer has in their account at the end of each pay period (default is 0).
-        """
-
-        taxes = 0.12
-        monthly_income = annual_income * (1 - taxes) / 12
-
-        self.annual_income = annual_income
-        self.paycheck = monthly_income
-        self.end_bal = end_bal
 
 
 class Tx:
@@ -188,91 +36,7 @@ class Statement:
         t = self.total.get(tx.desc, 0)
         t += tx.amount
         self.total[tx.desc] = t
-        
 
-
-
-class Period:
-    """
-    A class to represent a period of time.
-
-    Attributes
-    ----------
-    start : datetime
-        The start date of the period.
-    months : int, optional
-        The number of months in the period (default is 0).
-    days : int, optional
-        The number of days in the period (default is 0).
-    parts : int, optional
-        The number of parts the period is divided into (default is 1).
-
-    Methods
-    -------
-    __iter__():
-        Initializes the iterator.
-    __next__():
-        Returns the next date in the period.
-    """
-
-    def __init__(self, start, months=0, days=0, parts=1):
-        """
-        Constructs all the necessary attributes for the period object.
-
-        Parameters
-        ----------
-        start : datetime
-            The start date of the period.
-        months : int, optional
-            The number of months in the period (default is 0).
-        days : int, optional
-            The number of days in the period (default is 0).
-        parts : int, optional
-            The number of parts the period is divided into (default is 1).
-        """
-        self.start = start
-        self.months = months
-        self.days = days
-        self.parts = parts
-
-    def __iter__(self):
-        """
-        Initializes the iterator.
-
-        Returns
-        -------
-        datetime
-            The start date of the period.
-        """
-        self._now = self.start
-        return self
-
-    def __next__(self):
-        """
-        Returns the next date in the period.
-
-        Returns
-        -------
-        datetime
-            The next date in the period.
-
-        Raises
-        ------
-        StopIteration
-            If the period has ended.
-        """
-        r = self._now
-
-        if self.months > 0:
-            if self.parts == 1:
-                self._now += relativedelta(months=self.months)
-            elif self._now.day == 1:
-                self._now.day = 15
-            else:
-                self._now = self._now.replace(day=1) + relativedelta(months=1)
-        else:
-            self._now += relativedelta(months=self.months)
-        return r
 
 
 
@@ -301,7 +65,7 @@ class Report:
         # print(self.headers)
         # print(self.formats)
         # print(self.names_formats)
-    
+
     def header(self):
         h = ''
         for i, name in enumerate(self.names):
@@ -312,7 +76,7 @@ class Report:
             div = '=' * w
             h += f"{div}" + self.colSpacing
         return h
-    
+
     def row(self, *args):
         s = ''
         for i, arg in enumerate(args):
@@ -322,17 +86,18 @@ class Report:
             field = f"{{:{self.formats[i]}}}".format(arg)
             s += field + self.colSpacing
         return s
-        
 
 
-def run_statement(loan, customer, expenses, periods = 24):
+
+def run_statement(loan, customer, expenses):
     "Run a statement scenario into the future."
-    pmt = loan.pmt
-    statement = Statement()    
+    pmt = loan.calc_pmt(loan.term)
+    statement = Statement()
 
     # Start on the first day of the next month.
     d = date.today().replace(day=1) + timedelta(days=32)
     d = d.replace(day=1)
+
 
     for i in range(periods):
         statement.add_tx(Tx(d, "", 0))
@@ -359,7 +124,7 @@ def statement_report(report, customer, expenses, statement, loan):
     report = Report("Date:<10", "Description:<15", "Balance:>10,.2f", "Amount:>10,.2f")
     statement = run_statement(loan, customer, expenses)
     print(f"""
-          
+
 Payment: {loan.pmt:,.2f}
 
 {report.header()}""")
@@ -390,7 +155,7 @@ report = Report("Date:<10", "Description:<15", "Amount:>10,.2f", "Balance:>10,.2
 customer = Customer(40000)
 
 # Assume that with their loan, your expenses are your paycheck less their payment. That is, for the first month of your loan, you spend yourself down to zero balance.
-expenses = customer.paycheck - them.pmt
+expenses = customer.paycheck - them.calc_min_pmt()
 
 # Use the same fixed expenses for both loan scenarios.
 statement_them = run_statement(them, customer, expenses)
@@ -423,4 +188,14 @@ Your savings:       {statement_us.txs[-1].bal - statement_them.txs[-1].bal:>10,.
 """)
 
 
+
+def merge(*statements):
+    "Merge multiple statements into one."
+    s = Statement()
+    for statement in statements:
+        s.txs += statement.txs
+        s.total.update(statement.total)
+        s.bal = statement.bal
+    s.txs.sort(key=lambda tx: tx.date)
+    return s
 
