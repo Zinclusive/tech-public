@@ -98,7 +98,7 @@ class Period:
             if not self._days or type(self._days) != list:
                 raise ValueError("Expected a list of days for monthly period.")
             if self._months == 1:
-                i = next((index for index, day in enumerate(self._days) if day <= self._start.day), 0)
+                i = next((index for index, day in enumerate(self._days) if day >= self._start.day), 0)
 
                 while True:
                     count = 0

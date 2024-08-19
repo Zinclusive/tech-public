@@ -42,8 +42,16 @@ def test_period1():
     expected_dates(period, ["2000-12-01", "2001-01-01", "2001-02-01"])
 
     # Semi-monthly
+    period = SemiMonthlyPeriod(datetime(2000, 1, 1), days=[7, 22])
+    expected_dates(period, ["2000-01-07", "2000-01-22", "2000-02-07", "2000-02-22", "2000-03-07"])
+
+    # Semi-monthly
     period = SemiMonthlyPeriod(datetime(2000, 1, 1), days=[1, 15])
     expected_dates(period, ["2000-01-01", "2000-01-15", "2000-02-01", "2000-02-15", "2000-03-01"])
+
+    # Semi-monthly - delayed start
+    period = SemiMonthlyPeriod(datetime(2000, 1, 8), days=[1, 15])
+    expected_dates(period, ["2000-01-15", "2000-02-01", "2000-02-15", "2000-03-01"])
 
 
 if __name__ == "__main__":
