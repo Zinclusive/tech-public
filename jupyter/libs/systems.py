@@ -90,7 +90,7 @@ class CustomerSystem(ISystem):
                 MinPmtPctPrin = Zinclusive.MinPmtPctPrin[self.loan.iBand]
                 MinPmtPctPrin = self.pIncome.adjust_monthly(MinPmtPctPrin/100)
                 MinPmtPrin = bal*MinPmtPctPrin
-                pmt = max(MinPmtPrin, MinPmtFloor)
+                pmt = min(bal * (1+r/100), max(MinPmtPrin, MinPmtFloor))
 
                 statement.add_tx(Tx(d, "", 0))
                 statement.add_tx(Tx(d, "paycheck", self.paycheck))

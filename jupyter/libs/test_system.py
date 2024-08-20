@@ -21,7 +21,8 @@ def test_system_1():
 
     system = CustomerSystem(start=datetime(2000, 1, 1), end=datetime(2000, 1, 1), loan=loan, customer=customer)
     statement = system.get_statement()
-    loan_report(loan=loan, customer=customer, expenses=0, statement=statement)
+    df = loan_report(loan=loan, customer=customer, expenses=0, statement=statement)
+    print(df.to_string())
 
 
 

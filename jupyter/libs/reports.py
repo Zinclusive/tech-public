@@ -2,7 +2,8 @@ import numbers
 from copy import copy
 from datetime import datetime
 from loans import *
-
+import numpy as np
+import pandas as pd
 
 class Statement:
     """
@@ -89,52 +90,41 @@ def merge(*statements):
 
 
 
-def statement_report(customer, expenses, statement, loan, report=None):
-    """
-    EXAMPLE:
-      report = Report("Date:<10", "Description:<15", "Amount:>10,.2f", "Balance:>10,.2f", "Amount:>10,.2f", "Balance:>10,.2f")
-      customer = Customer(40000)
-      loan = Loan(5000, 0.12/12, 360)
-      expenses = 2000
-      statement_them = run_statement(loan, customer, expenses)
-      statement_report(report, customer, expenses, statement, loan)
-    """
-    print("\n\n\n\n")
-
-    report = report or Report("Date:<10", "Description:<15", "Amount:>10,.2f", "Balance:>10,.2f")
-    print(f"""
-
-
-{report.header()}""")
-    for tx in statement.txs[:10]:
+def statement_report(statement):
+    data = []
+    for tx in statement.txs:
         if tx.desc:
-            print(report.row(tx.date, tx.desc, tx.amount, tx.bal))
-        else:
-            print()
+            data.append([tx.date, tx.desc, tx.amount, tx.bal])
+    df = pd.DataFrame(data, columns=['Date', 'Description', 'Amount', 'Balance'])
+    return df
 
 
 
 def loan_report(customer, expenses, statement : Statement, loan : ILoan, report=None):
-    """
-    """
-    print("\n\n\n\n")
 
+    start = statement.txs[0].date
+    end = statement.txs[-1].date
     lBal = loan.bal
     lastDate = statement.txs[0].date
 
     txs = statement.txs.copy()
 
-    report = report or Report("Date:<10", "Description:<15", "Amount:>10,.2f", "Balance:>10,.2f", "LoanBal:>10,.2f")
-    print(f"""
-
-
-{report.header()}""")
+    data = []
     for tx in txs:
         if tx.desc:
             lBal = getattr(tx, "lBal", lBal)
-            print(report.row(tx.date, tx.desc, tx.amount, tx.bal, lBal))
+            iMonth = (tx.date.year - start.year) * 12 + (tx.date.month - start.month)
+            data.append([iMonth, tx.date, tx.desc, tx.amount, tx.bal, lBal])
+            if lBal < 0.01:
+                break
         else:
-            print()
+            pass
+    df = pd.DataFrame(data, columns=['iMonth', 'Date', 'Description', 'Amount', 'Balance', "Loan Bal"])
+    df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
+    df['Amount'] = df['Amount'].apply(lambda x: '{:.2f}'.format(x))
+    df['Balance'] = df['Balance'].apply(lambda x: '{:.2f}'.format(x))
+    df['Loan Bal'] = df['Loan Bal'].apply(lambda x: '{:.2f}'.format(x))
+    return df
 
 
 
