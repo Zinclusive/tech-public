@@ -75,6 +75,7 @@ class CustomerSystem(ISystem):
         statement.add_tx(Tx(d, key="apr", value=apr))
         statement.add_tx(Tx(d, desc=f"APR={apr:.2f}%", key="apr", value=apr))
         statement.add_tx(Tx(d, key="r", value=r))
+        statement.add_tx(Tx(d, "orig fee", -Zinclusive.OrigFee))
         iPayment = 0
 
         tx = Tx(d)

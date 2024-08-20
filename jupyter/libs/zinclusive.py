@@ -13,7 +13,8 @@ class Zinclusive:
     #  BW = Bi-weekly
     #  SM = Semi-monthly
 
-
+    # Origination Fee
+    OrigFee = 75.00
 
     # Starting Annual Percentage Rate (APR) for the loan
     Apr = 59.975
