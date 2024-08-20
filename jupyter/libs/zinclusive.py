@@ -1,4 +1,8 @@
 import numpy as np
+import pytest
+from tools import *
+
+
 
 class Zinclusive:
     """
@@ -39,4 +43,36 @@ class Zinclusive:
     MinPmtFloorBW = MinPmtFloor*12/26
     MinPmtFloorSM = MinPmtFloor*2
 
+    def get_band_index(bal : float):
+        return next((i for i, band in enumerate(Zinclusive.bands) if i+1 < len(Zinclusive.bands) and Zinclusive.bands[i] <= bal < Zinclusive.bands[i+1]), None)
 
+    def get_band(bal : float):
+        i = Zinclusive.get_band_index(bal)
+        return None if i is None else i+1
+
+
+
+
+
+
+
+def test_bands():
+    assert_equals(None, Zinclusive.get_band_index(500))
+    assert_equals(None, Zinclusive.get_band_index(990.99))
+    assert_equals(0, Zinclusive.get_band_index(1000))
+    assert_equals(0, Zinclusive.get_band_index(1500))
+    assert_equals(1, Zinclusive.get_band_index(2000))
+    assert_equals(1, Zinclusive.get_band_index(2500))
+    assert_equals(2, Zinclusive.get_band_index(4000))
+    assert_equals(2, Zinclusive.get_band_index(4500))
+    assert_equals(3, Zinclusive.get_band_index(7000))
+    assert_equals(3, Zinclusive.get_band_index(7500))
+    assert_equals(None, Zinclusive.get_band_index(10000))
+
+
+if __name__ == "__main__":
+    #pytest.main(["-k", "test_"])
+    import inspect
+    tests = inspect.getmembers(__import__(__name__), inspect.isfunction)
+    tests = [func for name, func in tests if name.startswith("test_")]
+    for test in tests: test()

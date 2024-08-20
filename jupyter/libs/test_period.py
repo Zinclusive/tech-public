@@ -55,7 +55,8 @@ def test_period1():
 
 
 if __name__ == "__main__":
+    #pytest.main(["-k", "test_"])
     import inspect
-    functions = inspect.getmembers(__import__(__name__), inspect.isfunction)
-    functions = [func for name, func in functions if name.startswith("test_")]
-    for f in functions: f()
+    tests = inspect.getmembers(__import__(__name__), inspect.isfunction)
+    tests = [func for name, func in tests if name.startswith("test_")]
+    for test in tests: test()

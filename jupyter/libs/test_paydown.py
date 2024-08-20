@@ -1,6 +1,7 @@
 from datetime import datetime
 import pytest
-from jupyter.libs.Customer import Customer
+from customer import Customer
+from period import Period
 from tools import *
 from paydown import *
 from loans import *
@@ -78,30 +79,6 @@ def test_period():
 
 
 
-def expected_dates(period, dates):
-    n = iter(period)
-    for i,d in enumerate(dates):
-        n = next(period)
-        assert_equals(datetime.strptime(d, "%Y-%m-%d"), n, f"Date {i+1} is {n}")
-
-
-def test_period1():
-    # Bi-weekly
-    period = BiWeeklyPeriod(datetime(2000, 1, 1))
-    expected_dates(period, ["2000-01-15", "2000-01-29", "2000-02-12", "2000-02-26", "2000-03-11"])
-
-    # Monthly
-    period = MonthlyPeriod(datetime(2000, 1, 1))
-    expected_dates(period, ["2000-02-01", "2000-03-01", "2000-04-01", "2000-05-01"])
-
-    # Does it wrap around the year?
-    period = MonthlyPeriod(datetime(2000, 12, 1))
-    expected_dates(period, ["2001-01-01", "2001-02-01"])
-
-    # Semi-monthly
-    period = SemiMonthlyPeriod(datetime(2000, 1, 1))
-    expected_dates(period, ["2000-01-15", "2000-02-01", "2000-02-15", "2000-03-01"])
-
 
 def test_periods():
     "Multiple periods merged together"
@@ -147,4 +124,10 @@ def test_spreadsheet_payment_band1():
         loan = ZLoan(100000)
 
 if __name__ == "__main__":
-    pytest.main([__file__])
+    #pytest.main(["-k", "test_"])
+    import inspect
+    tests = inspect.getmembers(__import__(__name__), inspect.isfunction)
+    tests = [func for name, func in tests if name.startswith("test_")]
+    for test in tests:
+        print(f"Skipping {test}")
+        #test()

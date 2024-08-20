@@ -1,5 +1,5 @@
 from zinclusive import Zinclusive
-from paydown import Tx
+from tx import Tx
 
 
 class ILoan:
@@ -59,10 +59,12 @@ class ZLoan(ILoan):
     """
     def __init__(self, bal):
         self.bal = bal
-        self.iBand = next((i for i, band in enumerate(Zinclusive.bands) if i+1 < len(Zinclusive.bands) and band[i] <= self.bal <= band[i+1]), None)
+        self.iBand = Zinclusive.get_band_index(bal)
         if self.iBand is None:
             raise Exception("Invalid balance. Does not fit in a band.")
         self.band = self.iBand + 1
+
+
 
     def payments(self, period):
         """
@@ -82,17 +84,17 @@ class ZLoan(ILoan):
             self.loan = loan
             self.i = 0
 
-        def generator():
+    #     def generator():
 
 
-        def __next__(self):
-            if self.i < len(Zinclusive.bands[self.loan.iBand]):
-                self.i += 1
-                return Zinclusive.bands[self.loan.iBand][self.i]
-            raise StopIteration
+    #     def __next__(self):
+    #         if self.i < len(Zinclusive.bands[self.loan.iBand]):
+    #             self.i += 1
+    #             return Zinclusive.bands[self.loan.iBand][self.i]
+    #         raise StopIteration
 
-    def __iter__(self):
-        return ZLoanIterator(self)
+    # def __iter__(self):
+    #     return ZLoanIterator(self)
 
 
     def calc_pmt(self, period):
@@ -228,6 +230,6 @@ class Loan(ILoan):
                 return self.bal + self.fees
 
             raise Exception("Invalid option")
-        
+
         # Creditors typically round up to the nearest dollar making it easier for both the creditor and the debtor to handle.
         return round(f() + 0.4999)

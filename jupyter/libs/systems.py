@@ -1,13 +1,17 @@
 from datetime import date
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
-from paydown import Statement
+from customer import *
+from loans import *
+from reports import *
+from tx import Tx
+
+
 
 
 class ISystem:
     """
-    Interface for system classes.
-    A "system" is anything that begins with an initial condition and evolves over time.
+    A "system" is anything that begins with an initial condition and evolves over time, such as a loan or statement.
     EXAMPLE:
         system = CustomerSystem(...)
         for state in system:
@@ -16,6 +20,9 @@ class ISystem:
     def __init__(self):
         pass
 
+    def get_statement(self):
+        raise NotImplementedError("get_statement() must be implemented in a derived class.")
+
 
 
 
@@ -23,7 +30,7 @@ class CustomerSystem(ISystem):
     """
     A system that models a customer with a periodic fixed income, getting a loan, and paying it down over time.
     """
-    def __init__(self, start, end, loan, customer, pIncome):
+    def __init__(self, start : date, end : date, loan : ILoan, customer : Customer):
         """
         Initialize a new instance of the class.
         Parameters:
@@ -39,50 +46,71 @@ class CustomerSystem(ISystem):
         self._end = end
         self._loan = loan
         self._customer = customer
-        self._pIncome = pIncome
         self.paycheck = customer.paycheck
 
+    @property
+    def customer(self): return self._customer
+    @property
+    def loan(self): return self._loan
+    @property
+    def pIncome(self): return self.customer.pIncome
 
-    def __iter__(self):
+    def get_statement(self):
         """
         Initialize the iterator.
         """
-        pmt = 123.45
         statement = Statement()
 
+        # Estimated monthly expenses
+        expenses = 2803.33
+
+        bal = self.loan.bal
+        apr = Zinclusive.Apr
+        r = self.pIncome.adjust_monthly(apr/12)
 
         # ADD PERIODIC INCOME, LOAN PAYMENTS, AND EXPENSES
-        # Start on the first day of the next month.
-        d = date.today().replace(day=1) + timedelta(days=32)
-        d = d.replace(day=1)
-
         d = self._start
-        for d in self._pIncome:
-            statement.add_tx(Tx(d, "", 0))
-            statement.add_tx(Tx(d, "paycheck", self.paycheck))
-            statement.add_tx(Tx(d, "loan payment", -pmt))
-            statement.add_tx(Tx(d, "expenses", -expenses))
+        end = self._start + relativedelta(years=3)
+
+        statement.add_tx(Tx(d, key="apr", value=apr))
+        statement.add_tx(Tx(d, desc=f"APR={apr:.2f}%", key="apr", value=apr))
+        statement.add_tx(Tx(d, key="r", value=r))
+        iPayment = 0
+
+        tx = Tx(d)
+        tx.lBal = bal
+
+        for d in self.pIncome:
+            if d > end: break
+
+            # We cannot require a payment before 10 days after the loan starts.
+            days = (d - self._start).days
+            if days >= 10:
+                MinPmtFloor = Zinclusive.MinPmtFloor[self.loan.iBand]
+                MinPmtPctPrin = Zinclusive.MinPmtPctPrin[self.loan.iBand]
+                MinPmtPctPrin = self.pIncome.adjust_monthly(MinPmtPctPrin/100)
+                MinPmtPrin = bal*MinPmtPctPrin
+                pmt = max(MinPmtPrin, MinPmtFloor)
+
+                statement.add_tx(Tx(d, "", 0))
+                statement.add_tx(Tx(d, "paycheck", self.paycheck))
+                tx = Tx(d, "loan payment", -pmt)
+                bal = bal*(1+r/100) - pmt
+                tx.lBal = bal
+                statement.add_tx(tx)
+                statement.add_tx(Tx(d, "expenses", -expenses))
+                iPayment += 1
+
+                if iPayment >= Zinclusive.AprDropsOn:
+                    apr = Zinclusive.AprDropsTo
+                    r = self.pIncome.adjust_monthly(apr/12)
+                    statement.add_tx(Tx(d, desc=f"APR={apr:.2f}%", key="apr", value=apr))
+                    statement.add_tx(Tx(d, key="r", value=r))
 
             # Next month
             d += relativedelta(months=1)
-        while d < self._end:
-            statement.add_tx(Tx(d, "", 0))
-            statement.add_tx(Tx(d, "paycheck", self._customer.paycheck))
 
-
-            statement.add_tx(Tx(d, "loan payment", -pmt))
-            statement.add_tx(Tx(d, "expenses", -expenses))
-
-            # Next month
-            d += relativedelta(months=1)
-        for i in range(periods):
-            statement.add_tx(Tx(d, "", 0))
-            statement.add_tx(Tx(d, "paycheck", customer.paycheck))
-            statement.add_tx(Tx(d, "loan payment", -pmt))
-            statement.add_tx(Tx(d, "expenses", -expenses))
-
-            # Next month
-            d += relativedelta(months=1)
+        return statement
 
 
 

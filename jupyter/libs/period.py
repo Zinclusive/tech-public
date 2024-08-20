@@ -89,6 +89,32 @@ class Period:
         self._months = months
         self._days = days
 
+    def adjust_monthly(self, x):
+        """
+        Suppose this period is semi-monthly with payments on the 1st and 15th.
+        If x is 100, then adjust_month(100) will return 50 since there are twice as many payments for semi-monthly than monthly.
+        If the APR is 0.12, and the monthly rate is 0.01, then adjust_month(0.01) will return 0.005.
+
+        Suppose this period is bi-weekly.
+        If the APR is 0.12, and the monthly rate is 0.01, then adjust_month(0.01) will return 0.004615384615385, which is 0.01 * 12 / 26.
+
+        parameters
+        ----------
+        x : float
+            Some monthly number, e.g. payment or interest.
+
+        returns
+        -------
+        float
+            The adjusted monthly number for this period.
+        """
+        if self._type == "monthly": return x
+        if self._type == "semi-monthly": return x/2
+        if self._type == "bi-weekly": return x*12/26
+        if self._type == "weekly": return x*12/52
+        raise ValueError("Invalid period type.")
+
+
     def generator(self):
         """
         Returns the generator for the period.
